@@ -5,7 +5,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
-namespace Fusion.Configs;
+namespace Fusion.Storages;
 
 public class IniConfig : ConfigBase
 {
@@ -19,9 +19,7 @@ public class IniConfig : ConfigBase
     public IniConfig(string filePath)
     {
         if (!InitFromFile(filePath))
-        {
             _data = new IniData();
-        }
     }
 
     public override byte[] Data => Encoding.UTF8.GetBytes(_data.ToString());
@@ -88,11 +86,9 @@ public class IniConfig : ConfigBase
             value = _data[section][key];
 
         if (value is not null)
-        {
             return value;
-        }
 
-        throw new Exception($"Path '{path}' not found");
+        throw new Exception($"Path '{path}' is not found");
     }
 
     public override T[] GetArray<T>(string path)

@@ -9,6 +9,7 @@ public partial class Application
         public const string ConfigFolderName = "Config";
         public const string CacheFolderName = "Cache";
         public const string LogsFolderName = "Logs";
+        public const string IntermediateCacheFolderName = "Intermediate";
 
         public static class InfoConfig
         {

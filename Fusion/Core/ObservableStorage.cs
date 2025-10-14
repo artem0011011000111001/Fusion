@@ -9,11 +9,11 @@ public abstract class ObservableStorage : StorageBase
     private static MethodInfo? arraySetterInstanse;
 
     private static MethodInfo SingleSetter => singleSetterInstanse ??= typeof(ObservableStorage)
-            .GetMethods(BindingFlags.Instance | BindingFlags.Public)
+            .GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
             .First(m => m.Name == nameof(SetImplementation) && m.IsGenericMethod);
 
     private static MethodInfo ArraySetter => arraySetterInstanse ??= typeof(ObservableStorage)
-            .GetMethods(BindingFlags.Instance | BindingFlags.Public)
+            .GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
             .First(m => m.Name == nameof(SetArrayImplementation) && m.IsGenericMethod);
 
     #region Events

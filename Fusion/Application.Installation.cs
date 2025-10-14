@@ -1,14 +1,26 @@
-﻿using System;
-using Fusion.Core;
+﻿using Fusion.Core;
+using Fusion.Storages;
+using System;
 
 namespace Fusion;
 
-public partial class Application(string localPath, string globalPath, string sharedPath)
+public partial class Application
 {
-    public string LocalPath { get; } = localPath;
-    public string GlobalPath { get; } = globalPath;
-    public string SharedPath { get; } = sharedPath;
+    public string LocalPath { get; }
+    public string GlobalPath { get; }
+    public string SharedPath { get; }
 
+    private Application(string localPath, string globalPath, string sharedPath)
+    {
+        LocalPath = localPath;
+        GlobalPath = globalPath;
+        SharedPath = sharedPath;
+        ConfigPath = Path.Combine(GlobalPath, Constants.ConfigFolderName);
+        CachePath = Path.Combine(LocalPath, Constants.CacheFolderName);
+        LogsPath = Path.Combine(LocalPath, Constants.LogsFolderName);
+        ApiPath = Path.Combine(SharedPath, Api.Constants.ApiFolderName);
+        RemoveIntermediateCaches();
+    }
 
     /// <returns>If application exists</returns>
     public static bool Exists(ApplicationIdenity applicationIdenity)
@@ -39,7 +51,10 @@ public partial class Application(string localPath, string globalPath, string sha
         File.WriteAllBytes(baseConfigPath, MakeInfoConfigData(applicationInfo));
 
         Directory.CreateDirectory(app.CachePath);
+        Directory.CreateDirectory(app.IntermediateCachePath);
         Directory.CreateDirectory(app.LogsPath);
+
+        app._applicationInfo = applicationInfo;
 
         return app;
     }
@@ -54,7 +69,14 @@ public partial class Application(string localPath, string globalPath, string sha
         {
             (string local, string global, string shared) = GetLocalGlobalSharedPaths(identity);
 
-            return new Application(local, global, shared);
+            Application app = new(local, global, shared);
+
+            app._applicationInfo = 
+                app.TryLoadConfig(Constants.InfoConfig.Filename, out IniConfig infoConfig) 
+                ? GetApplicationInfoFromInfoConfig(infoConfig) 
+                : new(identity.Name, identity.CompanyName);
+
+            return app;
         }
 
         throw new Exception($"Application {identity} does not exist");

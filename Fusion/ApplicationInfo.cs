@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 
 namespace Fusion;
 
@@ -19,4 +20,18 @@ public class ApplicationInfo(
     public string? License { get; set; } = license;
     public DateTime? BuildDate { get; set; } = buildDate;
     public string? Website { get; set; } = website;
+
+    public override string ToString()
+    {
+        StringBuilder stringBuilder = new ();
+        stringBuilder.AppendLine(Idenity.ToString());
+
+        if (Description != null) stringBuilder.AppendLine(Description);
+        if (License != null) stringBuilder.AppendLine($"Covered by '{License}' license");
+        stringBuilder.AppendLine($"Version: {Version}");
+        if (BuildDate != null) stringBuilder.AppendLine($"BuildDate: {BuildDate}");
+        if (Website != null) stringBuilder.AppendLine(Website);
+
+        return stringBuilder.ToString();
+    }
 }

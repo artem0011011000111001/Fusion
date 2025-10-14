@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Reflection;
-using Fusion.Configs;
+using Fusion.Storages;
 
 namespace Fusion;
 
