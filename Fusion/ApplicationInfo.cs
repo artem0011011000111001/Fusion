@@ -23,7 +23,7 @@ public class ApplicationInfo(
 
     public override string ToString()
     {
-        StringBuilder stringBuilder = new ();
+        StringBuilder stringBuilder = new();
         stringBuilder.AppendLine(Idenity.ToString());
 
         if (Description != null) stringBuilder.AppendLine(Description);

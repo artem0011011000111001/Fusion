@@ -1,8 +1,6 @@
 ﻿using Fusion.Core;
 using Fusion.Storages;
 using System;
-using System.ComponentModel;
-using System.Security.Principal;
 
 namespace Fusion;
 
@@ -13,9 +11,6 @@ public partial class Application
     public string LogsPath { get; private set; }
     public string ApiPath { get; private set; }
 
-    private string? _intermediateCachePath = null;
-    public string IntermediateCachePath => _intermediateCachePath ??= Path.Combine(CachePath, Constants.IntermediateCacheFolderName);
-
     #region Config
 
     private ApplicationInfo? _applicationInfo = null;
@@ -23,7 +18,7 @@ public partial class Application
     public string Name => Info.Name;
     public string CompanyName => Info.CompanyName;
     public string Version => Info.Version;
-    public string? Description =>  Info.Description;
+    public string? Description => Info.Description;
     public string? License => Info.License;
     public DateTime? BuildDate => Info.BuildDate;
     public string? Website => Info.Website;
@@ -33,6 +28,12 @@ public partial class Application
     public bool HasConfig(string name)
         => File.Exists(Path.Combine(ConfigPath, name));
 
+    /// <summary>
+    /// Creates config in 'ConfigPath' with specified name
+    /// </summary>
+    /// <remarks>If config already exists it will be deleted</remarks>
+    /// <typeparam name="TConfig">Config type</typeparam>
+    /// <returns>Created config</returns>
     public TConfig MakeConfig<TConfig>(string name) where TConfig : ConfigBase, new()
     {
         string path = Path.Combine(ConfigPath, name);
@@ -51,6 +52,13 @@ public partial class Application
         return config;
     }
 
+    /// <summary>
+    /// Loads config from specified name
+    /// </summary>
+    /// <typeparam name="TConfig">Config type</typeparam>
+    /// <returns>Loaded config</returns>
+    /// <exception cref="FileNotFoundException"></exception>
+    /// <exception cref="InitializationException"></exception>
     public TConfig LoadConfig<TConfig>(string name) where TConfig : ConfigBase, new()
     {
         string path = Path.Combine(ConfigPath, name);
@@ -63,11 +71,16 @@ public partial class Application
             File.WriteAllBytes(path, config.Data);
         };
 
-        if (!config.InitFromFile(path)) throw new Exception($"Failed to initialize config '{name}' with type '{config.GetType()}' from '{path}'");
+        if (!config.InitFromFile(path)) throw new InitializationException($"Failed to initialize config '{name}' with type '{config.GetType()}' from '{path}'");
 
         return config;
     }
 
+    /// <summary>
+    /// Tries to load config with specified name
+    /// </summary>
+    /// <typeparam name="TConfig">Config type</typeparam>
+    /// <returns>If config has been loaded</returns>
     public bool TryLoadConfig<TConfig>(string name, out TConfig config) where TConfig : ConfigBase, new()
     {
         try
@@ -82,6 +95,11 @@ public partial class Application
         }
     }
 
+    /// <summary>
+    /// Loads config if it already exists; otherwise creates a new one
+    /// </summary>
+    /// <typeparam name="TConfig">Config type</typeparam>
+    /// <returns>Created or loaded config</returns>
     public TConfig MakeOrLoadConfig<TConfig>(string name) where TConfig : ConfigBase, new()
         => HasConfig(name) ? LoadConfig<TConfig>(name) : MakeConfig<TConfig>(name);
 
@@ -90,29 +108,28 @@ public partial class Application
     #region Caching
 
     private CacheBase? _intermediateCache = null;
+
+    /// <summary>
+    /// Represents intermediate cache that does not exist between sessions
+    /// </summary>
+    /// <remarks>Value is 'BinaryCache' by default</remarks>
     public CacheBase IntermediateCache
     {
-        get
-        {
-            if (_intermediateCache is null)
-            {
-                _intermediateCache = new BinaryCache();
-
-                string path = Path.Combine(IntermediateCachePath, $"{GetSession()}_cache");
-                _intermediateCache.ValueChanged += (_, _) =>
-                {
-                    File.WriteAllBytes(path, _intermediateCache.Data);
-                };
-
-                File.Create(path).Dispose();
-            }
-            
-            return _intermediateCache;
-        }
+        get => _intermediateCache ??= new BinaryCache();
         set => _intermediateCache = value;
     }
 
-    public TCache MakeOrLoadCache<TCache>(string name) where TCache : CacheBase, new()
+    /// <returns>If cache exists</returns>
+    public bool HasCache(string name)
+        => File.Exists(Path.Combine(CachePath, name));
+
+    /// <summary>
+    /// Creates cache in 'CachePath' with specified name
+    /// </summary>
+    /// <remarks>If cache already exists it will be deleted</remarks>
+    /// <typeparam name="TCache">Cache type</typeparam>
+    /// <returns>Created cache</returns>
+    public TCache MakeCache<TCache>(string name) where TCache : CacheBase, new()
     {
         string path = Path.Combine(CachePath, name);
         TCache cache = new();
@@ -123,16 +140,67 @@ public partial class Application
         };
 
         if (File.Exists(path))
-        {
-            cache.InitFromBytes(File.ReadAllBytes(path));
-            return cache;
-        }
+            File.Delete(path);
 
         File.Create(path).Dispose();
 
         return cache;
     }
 
+    /// <summary>
+    /// Loads cache from specified name
+    /// </summary>
+    /// <typeparam name="TCache">Cache type</typeparam>
+    /// <returns>Loaded cache</returns>
+    /// <exception cref="FileNotFoundException"></exception>
+    public TCache LoadCache<TCache>(string name) where TCache : CacheBase, new()
+    {
+        string path = Path.Combine(CachePath, name);
+
+        if (!File.Exists(path)) throw new FileNotFoundException($"Cache '{name}' is not found");
+
+        TCache cache = new();
+        cache.ValueChanged += (_, _) =>
+        {
+            File.WriteAllBytes(path, cache.Data);
+        };
+
+        cache.InitFromBytes(File.ReadAllBytes(path));
+
+        return cache;
+    }
+
+    /// <summary>
+    /// Tries to load cache with specified name
+    /// </summary>
+    /// <typeparam name="TCache">Cache type</typeparam>
+    /// <returns>If cache has been loaded</returns>
+    public bool TryLoadCache<TCache>(string name, out TCache cache) where TCache : CacheBase, new()
+    {
+        try
+        {
+            cache = LoadCache<TCache>(name);
+            return true;
+        }
+        catch
+        {
+            cache = default!;
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Loads cache if it already exists; otherwise creates a new one
+    /// </summary>
+    /// <typeparam name="TCache">Cache type</typeparam>
+    /// <returns>Created or loaded cache</returns>
+    public TCache MakeOrLoadCache<TCache>(string name) where TCache : CacheBase, new()
+        => HasCache(name) ? LoadCache<TCache>(name) : MakeCache<TCache>(name);
+
+    /// <summary>
+    /// Clears a cache with specified name
+    /// </summary>
+    /// <returns>If cache has been cleared</returns>
     public bool ClearCache(string name)
     {
         string path = Path.Combine(CachePath, name);
@@ -151,6 +219,11 @@ public partial class Application
     #region Logging
 
     private ObservableLogger? _logger;
+
+    /// <summary>
+    /// Application logger
+    /// </summary>
+    /// <remarks>Value is 'FileLogger' by default</remarks>
     public ObservableLogger Logger
     {
         get => _logger ??= new FileLogger(Path.Combine(LogsPath, $"{GetSession()}_log.txt"));

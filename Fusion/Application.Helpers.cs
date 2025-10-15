@@ -6,16 +6,6 @@ namespace Fusion;
 
 public partial class Application
 {
-    private void RemoveIntermediateCaches()
-    {
-        string[] caches = Directory.GetFiles(IntermediateCachePath);
-
-        foreach (string cache in caches)
-        {
-            File.Delete(cache);
-        }
-    }
-
     private static byte[] MakeInfoConfigData(ApplicationInfo applicationInfo)
     {
         IniConfig config = new();

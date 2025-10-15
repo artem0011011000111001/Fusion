@@ -19,7 +19,6 @@ public partial class Application
         CachePath = Path.Combine(LocalPath, Constants.CacheFolderName);
         LogsPath = Path.Combine(LocalPath, Constants.LogsFolderName);
         ApiPath = Path.Combine(SharedPath, Api.Constants.ApiFolderName);
-        RemoveIntermediateCaches();
     }
 
     /// <returns>If application exists</returns>
@@ -51,7 +50,6 @@ public partial class Application
         File.WriteAllBytes(baseConfigPath, MakeInfoConfigData(applicationInfo));
 
         Directory.CreateDirectory(app.CachePath);
-        Directory.CreateDirectory(app.IntermediateCachePath);
         Directory.CreateDirectory(app.LogsPath);
 
         app._applicationInfo = applicationInfo;
@@ -63,6 +61,7 @@ public partial class Application
     /// Loads application
     /// </summary>
     /// <returns>Application object</returns>
+    /// <exception cref="Exception"></exception>
     public static Application Load(ApplicationIdenity identity)
     {
         if (Exists(identity))
@@ -85,7 +84,7 @@ public partial class Application
     /// <summary>
     /// Tries to load application
     /// </summary>
-    /// <returns>If application was loaded</returns>
+    /// <returns>If application has been loaded</returns>
     public static bool TryLoad(ApplicationIdenity identity, out Application app)
     {
         try
@@ -101,7 +100,7 @@ public partial class Application
     }
 
     /// <summary>
-    /// If application exists loads it otherwise installs new one
+    /// Loads application if it already exists; otherwise installs a new one
     /// </summary>
     /// <returns>Created or loaded application</returns>
     public static Application InstallOrLoad(ApplicationInfo applicationInfo)
